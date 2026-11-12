@@ -1,0 +1,484 @@
+@import "tailwindcss";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background: #000000;
+  /* Default: Black */
+  color: #F4F4F5;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 99px;
+}
+
+::selection {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+@keyframes heartbeat {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  25% {
+    transform: scale(1.1);
+  }
+
+  50% {
+    transform: scale(1);
+  }
+
+  75% {
+    transform: scale(1.2);
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* ────────────────────────────────────────────────────────
+   DARK MODE COLOR ADJUSTMENTS (Navy/Midnight to Pure Black)
+   ──────────────────────────────────────────────────────── */
+body.dark-theme,
+body:not(.light-theme) {
+  background-color: #000000 !important;
+  color: #f4f4f5;
+}
+
+/* Page background containers (deep navy) mapped to transparent to reveal background glow orb */
+body:not(.light-theme) div.h-screen.overflow-hidden,
+body:not(.light-theme) .bg-\[\#0B0F19\],
+body:not(.light-theme) .bg-\[\#0b0f19\],
+body:not(.light-theme) .bg-\[\#060814\],
+body:not(.light-theme) .bg-slate-950,
+body:not(.light-theme) .bg-black {
+  background-color: transparent !important;
+}
+
+
+/* Solid sidebars and headers for stable layout structure */
+body:not(.light-theme) aside,
+body:not(.light-theme) header,
+body:not(.light-theme) .bg-\[\#080C14\],
+body:not(.light-theme) .bg-\[\#080c14\],
+body:not(.light-theme) .bg-\[\#0a0a0c\] {
+  background-color: #0c0c0e !important;
+  border-color: #1f2025 !important;
+}
+
+/* Dashboard cards and panels styled with premium glassmorphic effect */
+body:not(.light-theme) .bg-\[\#070A11\],
+body:not(.light-theme) .bg-\[\#070a11\],
+body:not(.light-theme) .bg-\[\#04060d\],
+body:not(.light-theme) .bg-slate-900,
+body:not(.light-theme) .bg-slate-900\/40,
+body:not(.light-theme) .bg-slate-900\/70,
+body:not(.light-theme) .bg-slate-900\/20,
+body:not(.light-theme) .bg-zinc-900\/50,
+body:not(.light-theme) .bg-\[\#0b101f\],
+body:not(.light-theme) .bg-\[\#121214\],
+body:not(.light-theme) .bg-slate-950\/50,
+body:not(.light-theme) .bg-zinc-900 {
+  background-color: rgba(12, 12, 14, 0.45) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+}
+
+
+
+/* Sidebar lists hover state */
+body:not(.light-theme) .hover\:bg-slate-800\/50:hover {
+  background-color: #1c1c1e !important;
+}
+
+/* Border overrides mapped to clean pitch-slate */
+body:not(.light-theme) .border-slate-800\/60,
+body:not(.light-theme) .border-slate-800\/80,
+body:not(.light-theme) .border-slate-800,
+body:not(.light-theme) .border-zinc-800\/60,
+body:not(.light-theme) .border-zinc-800\/80,
+body:not(.light-theme) .border-zinc-800 {
+  border-color: #1f2025 !important;
+}
+
+/* Inputs and interactive nodes */
+body:not(.light-theme) input,
+body:not(.light-theme) select,
+body:not(.light-theme) textarea,
+body:not(.light-theme) .bg-slate-950 {
+  background-color: #000000 !important;
+  border-color: #1f2025 !important;
+  color: #f4f4f5 !important;
+}
+
+
+/* ────────────────────────────────────────────────────────
+   LIGHT MODE COLOR ADJUSTMENTS (Off-White Overhaul)
+   ──────────────────────────────────────────────────────── */
+body.light-theme {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+body.light-theme ::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+}
+
+/* Page background containers mapped to transparent to reveal background glow orb */
+body.light-theme div.h-screen.overflow-hidden,
+body.light-theme .bg-\[\#0B0F19\],
+body.light-theme .bg-\[\#0b0f19\],
+body.light-theme .bg-\[\#060814\],
+body.light-theme .bg-slate-950,
+body.light-theme .bg-black {
+  background-color: transparent !important;
+}
+
+
+/* Solid sidebars and headers for stable layout structure */
+body.light-theme aside,
+body.light-theme header,
+body.light-theme .bg-\[\#080C14\],
+body.light-theme .bg-\[\#080c14\],
+body.light-theme .bg-\[\#0a0a0c\] {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Dashboard cards and panels styled with premium glassmorphic effect */
+body.light-theme .bg-\[\#070A11\],
+body.light-theme .bg-\[\#070a11\],
+body.light-theme .bg-\[\#04060d\],
+body.light-theme .bg-slate-900,
+body.light-theme .bg-slate-900\/40,
+body.light-theme .bg-slate-900\/70,
+body.light-theme .bg-slate-900\/20,
+body.light-theme .bg-zinc-900\/50,
+body.light-theme .bg-\[\#0b101f\],
+body.light-theme .bg-\[\#121214\],
+body.light-theme .bg-slate-950\/50,
+body.light-theme .bg-white,
+body.light-theme .bg-zinc-900 {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border-color: rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.03) !important;
+}
+
+
+
+/* Table rows and inner card structures */
+body.light-theme .hover\:bg-slate-800\/50:hover,
+body.light-theme .hover\:bg-slate-900\/60:hover,
+body.light-theme .hover\:bg-slate-900\/40:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Table border divider override */
+body.light-theme .divide-slate-800\/30>*+* {
+  border-color: #cbd5e1 !important;
+}
+
+/* Border overrides mapped to slate-200 border indicators */
+body.light-theme .border-slate-800\/60,
+body.light-theme .border-slate-800\/80,
+body.light-theme .border-slate-800,
+body.light-theme .border-zinc-800\/60,
+body.light-theme .border-zinc-800\/80,
+body.light-theme .border-zinc-850,
+body.light-theme .border-zinc-800 {
+  border-color: #cbd5e1 !important;
+}
+
+/* High contrast text overrides (White/Slate-100 to dark Slate-900) */
+body.light-theme .text-slate-200,
+body.light-theme .text-slate-100,
+body.light-theme .text-slate-50,
+body.light-theme .text-white {
+  color: #0f172a !important;
+}
+
+body.light-theme .text-slate-400,
+body.light-theme .text-slate-500,
+body.light-theme .text-slate-600 {
+  color: #1e293b !important;
+}
+
+/* Input, textareas, selectors color mappings */
+body.light-theme input,
+body.light-theme select,
+body.light-theme textarea,
+body.light-theme .bg-slate-950 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+body.light-theme input::placeholder,
+body.light-theme textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Keep clinical green indicators vibrant in light mode */
+body.light-theme .text-emerald-400,
+body.light-theme .text-emerald-505,
+body.light-theme .text-emerald-500 {
+  color: #059669 !important;
+}
+
+body.light-theme .bg-emerald-500\/10,
+body.light-theme .bg-emerald-600\/10 {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+  color: #059669 !important;
+}
+
+body.light-theme .border-emerald-500\/20,
+body.light-theme .border-emerald-100 {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* ────────────────────────────────────────────────────────
+   GLOBAL ACCENT REPLACEMENTS (Blue -> Medical Emerald Green)
+   ──────────────────────────────────────────────────────── */
+.text-blue-400,
+.text-blue-500,
+.text-blue-600 {
+  color: #10b981 !important;
+  /* emerald-500 */
+}
+
+body.light-theme .text-blue-400,
+body.light-theme .text-blue-500,
+body.light-theme .text-blue-600 {
+  color: #059669 !important;
+  /* emerald-600 */
+}
+
+/* Primary background overrides */
+.bg-blue-600 {
+  background-color: #10b981 !important;
+  /* emerald-500 */
+}
+
+.hover\:bg-blue-750:hover,
+.hover\:bg-blue-700:hover,
+.bg-blue-600:hover {
+  background-color: #059669 !important;
+  /* emerald-600 */
+}
+
+body.light-theme .bg-blue-600 {
+  background-color: #059669 !important;
+}
+
+body.light-theme .bg-blue-600:hover {
+  background-color: #047857 !important;
+}
+
+/* Soft backgrounds & badges */
+.bg-blue-500\/10,
+.bg-blue-600\/20,
+.bg-blue-600\/15 {
+  background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+body.light-theme .bg-blue-500\/10,
+body.light-theme .bg-blue-600\/20,
+body.light-theme .bg-blue-600\/15 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  color: #047857 !important;
+}
+
+/* Borders */
+.border-blue-500\/20,
+.border-blue-500\/30 {
+  border-color: rgba(16, 185, 129, 0.2) !important;
+}
+
+body.light-theme .border-blue-500\/20,
+body.light-theme .border-blue-500\/30 {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Focus and inputs */
+.focus\:border-blue-500\/50:focus {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+.focus\:ring-blue-500\/30:focus {
+  --tw-ring-color: rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* ────────────────────────────────────────────────────────
+   SIDEBAR NAVIGATION HOVER OVERHAUL (All Dashboards)
+   ──────────────────────────────────────────────────────── */
+aside nav button {
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Base style transitions for inner elements */
+aside nav button svg {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s ease !important;
+}
+
+aside nav button span {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s ease !important;
+  display: inline-block;
+}
+
+/* Hover style background & borders */
+aside nav button:hover {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+body.light-theme aside nav button:hover {
+  background-color: rgba(16, 185, 129, 0.06) !important;
+  border-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Shift icon and text slightly to the right */
+aside nav button:hover svg {
+  transform: translateX(1px) scale(1.05) !important;
+  color: #10b981 !important;
+}
+
+body.light-theme aside nav button:hover svg {
+  color: #059669 !important;
+}
+
+aside nav button:hover span {
+  transform: translateX(2px) !important;
+  color: #ffffff !important;
+}
+
+body.light-theme aside nav button:hover span {
+  color: #0f172a !important;
+}
+
+/* Left green indicator bar on hover or active */
+aside nav button::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 3.5px !important;
+  background-color: #10b981 !important;
+  transform: scaleY(0) !important;
+  transform-origin: bottom !important;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 0 4px 4px 0 !important;
+}
+
+body.light-theme aside nav button::before {
+  background-color: #059669 !important;
+}
+
+/* Activate the left bar on hover */
+aside nav button:hover::before {
+  transform: scaleY(1) !important;
+  transform-origin: top !important;
+}
+
+/* Active states indicators */
+aside nav button[class*="bg-blue-600/20"],
+aside nav button[class*="bg-emerald-600/10"],
+aside nav button[class*="bg-emerald-50"],
+aside nav button[class*="bg-emerald-500/10"] {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+body.light-theme aside nav button[class*="bg-blue-600/20"],
+body.light-theme aside nav button[class*="bg-emerald-600/10"],
+body.light-theme aside nav button[class*="bg-emerald-50"],
+body.light-theme aside nav button[class*="bg-emerald-500/10"] {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.18) !important;
+}
+
+aside nav button[class*="bg-blue-600/20"]::before,
+aside nav button[class*="bg-emerald-600/10"]::before,
+aside nav button[class*="bg-emerald-50"]::before,
+aside nav button[class*="bg-emerald-500/10"]::before {
+  transform: scaleY(1) !important;
+}
+
+aside nav button[class*="bg-blue-600/20"] span,
+aside nav button[class*="bg-emerald-600/10"] span,
+aside nav button[class*="bg-emerald-50"] span,
+aside nav button[class*="bg-emerald-500/10"] span {
+  color: #10b981 !important;
+  font-weight: 600 !important;
+}
+
+body.light-theme aside nav button[class*="bg-blue-600/20"] span,
+body.light-theme aside nav button[class*="bg-emerald-600/10"] span,
+body.light-theme aside nav button[class*="bg-emerald-50"] span,
+body.light-theme aside nav button[class*="bg-emerald-500/10"] span {
+  color: #059669 !important;
+}
+
+aside nav button[class*="bg-blue-600/20"] svg,
+aside nav button[class*="bg-emerald-600/10"] svg,
+aside nav button[class*="bg-emerald-50"] svg,
+aside nav button[class*="bg-emerald-500/10"] svg {
+  color: #10b981 !important;
+}
+
+body.light-theme aside nav button[class*="bg-blue-600/20"] svg,
+body.light-theme aside nav button[class*="bg-emerald-600/10"] svg,
+body.light-theme aside nav button[class*="bg-emerald-50"] svg,
+body.light-theme aside nav button[class*="bg-emerald-500/10"] svg {
+  color: #059669 !important;
+}
+
+/* Old clinical grid and heartbeat styles removed to let the simple MedicalBackground component shine */
+
+/* ────────────────────────────────────────────────────────
+   SAFETY NET PAGE — LIGHT MODE CARD OVERRIDES
+   Ensures the glassmorphic inline-style card looks good
+   on the light (#f1f5f9) background too.
+   ──────────────────────────────────────────────────────── */
+body.light-theme .text-slate-100 {
+  color: #0f172a !important;
+}
+
+body.light-theme .text-slate-200 {
+  color: #1e293b !important;
+}
+
+body.light-theme .text-slate-500 {
+  color: #475569 !important;
+}
+
+body.light-theme .text-slate-600 {
+  color: #334155 !important;
+}
