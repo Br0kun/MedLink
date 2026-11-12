@@ -1,108 +1,295 @@
-# Medical Platform 🏥
+# Medlink
+<p align="center">
+  <img src="https://media.giphy.com/media/3o7TKuFYevgE2b6Mx2/giphy.gif" width="350" alt="Medical Humor GIF">
+</p>
 
-A secure, real-time medical platform for managing patient dossiers (medical records), processing lab analysis uploads, handling doctor-patient access permissions, and automated triage escalation.
+A multi-role medical records platform designed to manage patient dossiers, coordinate access between healthcare professionals, and handle laboratory results through a centralized system.
 
-Built as a multi-role EMR-inspired web platform using a modern JavaScript stack with a Next.js frontend and an Express.js backend.
+The platform brings patients, doctors, laboratories, and administrators into a shared environment where medical information can be managed, accessed, and reviewed according to clearly defined permissions.
 
----
+Rather than treating medical records as simple documents, the system introduces multiple layers of access control, specialty-based isolation, temporary permissions, emergency access procedures, and automated follow-up mechanisms for unreviewed laboratory results.
 
-## 🏗️ Architecture & Stack
-
-The project is structured as a monorepo containing a Node/Express backend and a Next.js frontend.
-
-### Backend (`/` & `/src`)
-*   **Runtime:** Node.js (ES Modules)
-*   **Framework:** Express.js
-*   **Database ORM:** [Prisma](https://www.prisma.io/) with PostgreSQL
-*   **Real-time Communication:** Socket.IO for live alerts & notifications
-*   **Authentication:** JWT (JSON Web Tokens) & bcryptjs hashing
-*   **Triage Automation:** `node-cron` for scheduled background jobs
-*   **Document Generation:** `pdfkit` for generating downloadable patient dossiers
-
-### Frontend (`/medical-platform-frontend`)
-*   **Framework:** [Next.js](https://nextjs.org/) (App Router, React 19)
-*   **Styling:** Tailwind CSS v4 & PostCSS with custom global theme overrides
-*   **State Management:** Zustand
-*   **HTTP Client:** Axios
-*   **Real-time Communication:** Socket.io-client
-*   **Icons:** Lucide React
+Built with Next.js, Express.js, and PostgreSQL, the project combines a modern web interface with a backend responsible for authentication, authorization, medical data management, and real-time communication.
 
 ---
 
-## 🌟 Core Features & Workflows
+## Architecture & Technology Stack
 
-### 1. Role-Based Access Control (RBAC)
-Four user roles are fully supported:
-*   **Patients:** Can view their own medical record, review/respond to pending access requests from doctors, revoke active grants, proactively share access with doctors, and export/download their dossier as a PDF.
-*   **Doctors:** Can request access to patient records by email, view patient records they are authorized for, prescribe medications, add diagnoses, perform emergency break-glass overrides, and monitor their incoming lab result review inbox.
-*   **Labs:** Can upload medical analysis files (PDFs, images) for specific patient records and classify them by priority and medical specialty.
-*   **Admins:** Monitor platform statistics, manage/toggle user account statuses (active, suspended), review and approve pending Doctor and Lab credentials, audit security-sensitive actions via the filterable system log, and monitor emergency break-glass logs.
+The application follows a monorepo structure, separating the frontend and backend while maintaining a shared project environment.
 
-### 2. Registration & Account Verification Workflow
-*   To maintain medical credibility, **Doctors** and **Labs** register with a status of `PENDING`. They are locked out of the platform until an **Admin** verifies their credentials (e.g., medical license number for doctors, address for labs).
-*   **Patients** and **Admins** are activated immediately upon registration.
+### Backend
 
-### 3. Patient Dossier & Multi-Layer Access Permissions
-Each patient has a dedicated `MedicalRecord` (Dossier) containing laboratory analyses, prescriptions, diagnoses, and active access grants. Doctor access is governed by three specific layers of access control:
+The backend handles authentication, business logic, database operations, access control, background jobs, and communication between platform roles.
 
-*   **Layer 1: Base Access Grant**
-    *   Before a doctor can view a patient's dossier at all, they must hold a valid base `AccessGrant` (category: `null`) approved by the patient. A doctor can request access by patient email, or a patient can proactively share it.
-*   **Layer 2: Specialty Isolation**
-    *   A dossier's analyses, prescriptions, and diagnoses are tagged with a medical specialty (category).
-    *   By default, a doctor can only see records matching their own specialty (e.g. a cardiologist only sees `CARDIOLOGY` records) or `GENERAL` records. Specialized records from other fields (e.g., `PSYCHIATRY`) are isolated automatically.
-*   **Layer 3: Cross-Specialty Opt-In & Scope Restrictions**
-    *   A patient can grant a specific doctor access to other specialties by creating a specialty-scoped grant (e.g., scoped to `PSYCHIATRY`).
-    *   A grant can also restrict access to specific dossier sections (`scope: ['ANALYSIS', 'PRESCRIPTION', 'DIAGNOSIS']`). An empty scope array defaults to all sections.
-    *   Grants can have optional expiration dates (`expiresAt`), after which they transition to `EXPIRED`.
+| Component | Technology |
+|---|---|
+| Runtime | Node.js (ES Modules) |
+| Framework | Express.js |
+| Database | PostgreSQL |
+| ORM | Prisma |
+| Authentication | JWT |
+| Password Hashing | bcryptjs |
+| Real-time Communication | Socket.IO |
+| Background Jobs | node-cron |
+| PDF Generation | pdfkit |
+| File Uploads | Multer |
 
-### 4. Proactive Sharing ("Google Drive" Model)
-*   Instead of waiting for a doctor's access request, patients can proactively search for a doctor by email and grant them dossier access directly.
-*   The patient can select the allowed specialty category, restrict scopes to specific record types, and set a custom time limit for access.
+### Frontend
 
-### 5. Emergency Override ("Break-Glass" Protocol)
-*   In critical situations, a doctor can perform a "Break-Glass" override to bypass the normal patient approval queue and gain immediate temporary access to a patient's dossier.
-*   This action requires a written justification reason.
-*   Upon execution, a real-time `BREAK_GLASS_ACCESS` notification alert is sent to the patient.
-*   Every break-glass event creates an immutable security log entry in the `BreakGlassLog` table, accessible only by platform Administrators.
+The frontend provides separate workspaces for each platform role, with centralized authentication state and real-time notification handling.
 
-### 6. Lab Results Triage & Auto-Escalation Job
-*   When uploading results, labs specify a priority: `ROUTINE`, `URGENT`, or `CRITICAL`.
-*   Unreviewed results are sent to the authorized doctor's Inbox, sorted by severity.
-*   **Safety Net Background Job (Cron):**
-    *   Runs every **15 minutes** (`*/15 * * * *`).
-    *   Finds all unreviewed analyses and fires SMS + WebSocket alerts to authorized doctors:
-        *   **CRITICAL** results: alert after 15 min, re-alert every 6 hours until reviewed.
-        *   **ROUTINE** results: alert after the doctor's configured delay (default 12h), re-alert every 24h, respecting quiet hours.
-    *   Generates a magic-link in each alert so the doctor can open the report directly without logging in.
-    *   Every dispatch is recorded in the `AuditLog` with the Textbee SMS message ID.
-
-### 7. Comprehensive Audit Logging
-All significant platform actions are recorded in the `AuditLog` table with the acting user's ID, role, and a human-readable action description. Logged events include:
-*   **Doctor:** Accessing a patient's dossier (approved access only).
-*   **Patient:** Viewing their own dossier, approving or denying a doctor's access request, proactively creating direct grants.
-*   **Lab:** Uploading a new analysis for a patient.
-*   **Admin:** Toggling user account status (suspend/reactivate), verifying doctor/lab accounts.
-
-### 8. Light / Dark Theme System
-*   A globally accessible floating toggle button (☀️/🌙) allows switching between light and dark modes across the entire platform.
-*   Theme preference is persisted in `localStorage` and synced instantly across all pages via a custom `themechange` event.
-*   **Dark Mode:** Pitch black (`#000000`) page backgrounds, charcoal (`#0a0a0c`) sidebars/headers, and clean zinc-800 borders.
-*   **Light Mode:** Cool slate-100 (`#f1f5f9`) page backgrounds, crisp white (`#ffffff`) sidebars/panels, and slate-300 (`#cbd5e1`) borders for strong visual separation.
-*   Authentication pages (Login/Register) use a fixed dark clinical background so the EKG cardiac monitor animation always remains readable.
+| Component | Technology |
+|---|---|
+| Framework | Next.js (App Router) |
+| UI Library | React 19 |
+| Styling | Tailwind CSS v4 |
+| State Management | Zustand |
+| HTTP Client | Axios |
+| Real-time Communication | Socket.io-client |
+| Icons | Lucide React |
 
 ---
 
-## 📂 Project Directory Structure
+## Core Features & System Workflows
 
-```
+### 1. Multi-Role Architecture & Access Control
+
+The platform operates around four distinct user roles. Each role has its own responsibilities, interface, and permitted operations.
+
+**Patients**
+
+Patients remain in control of their medical information. They can:
+
+- Access and review their medical dossier.
+- Receive and respond to doctors' access requests.
+- Approve, deny, or revoke access permissions.
+- Share their records directly with doctors.
+- Configure specialty restrictions and access durations.
+- Download their medical dossier as a PDF.
+- Receive notifications about access requests and emergency access events.
+
+**Doctors**
+
+Doctors interact with patient records according to their verified professional specialty and the permissions granted to them.
+
+They can:
+
+- Request access to patient dossiers.
+- Review authorized patient records.
+- Add diagnoses and prescriptions.
+- Access laboratory results through a dedicated inbox.
+- Perform emergency access overrides when necessary.
+
+**Laboratories**
+
+Laboratories are responsible for submitting medical analysis results.
+
+They can:
+
+- Upload laboratory reports in PDF or image format.
+- Associate results with specific patient records.
+- Classify submissions according to priority and medical specialty.
+- Track previously uploaded analyses.
+
+**Administrators**
+
+Administrators oversee platform operations and account verification.
+
+They can:
+
+- Monitor platform statistics.
+- Manage user accounts and their active or suspended status.
+- Review and approve doctor and laboratory registrations.
+- Inspect system audit logs.
+- Monitor emergency access events.
+
+### 2. Registration & Professional Verification
+
+Not every account receives immediate access to the platform.
+
+Patients and administrators become active immediately after registration. Doctors and laboratories follow a separate verification process.
+
+When a doctor or laboratory creates an account, its status is initially set to `PENDING`. Access to the platform remains restricted until an administrator reviews and approves the submitted professional information.
+
+For example, doctors must provide their medical license information, while laboratories submit their organizational details.
+
+This introduces an additional verification step before professional accounts can interact with patient records.
+
+### 3. Patient Dossiers & Layered Permission Model
+
+Each patient has a dedicated `MedicalRecord` containing their medical information, including:
+
+- Laboratory analyses.
+- Medical prescriptions.
+- Diagnoses.
+- Access grants.
+
+Access to this information is not controlled by a single permission flag. Instead, the platform implements three distinct authorization layers.
+
+**Layer 1 — Base Access Grant**
+
+A doctor must first obtain an approved base `AccessGrant` before accessing a patient's dossier.
+
+This permission can be established through two workflows:
+
+- The doctor submits an access request using the patient's email address.
+- The patient proactively grants access to the doctor.
+
+Without an approved base grant, the doctor cannot access the dossier.
+
+**Layer 2 — Specialty Isolation**
+
+Medical information is associated with a specialty category.
+
+By default, doctors can access records belonging to their own specialty or records classified as `GENERAL`.
+
+For example, a cardiologist can access cardiology-related information and general records, but specialized psychiatric records remain isolated.
+
+This prevents a general access grant from automatically exposing every medical section to every doctor.
+
+**Layer 3 — Cross-Specialty Permissions & Scope Restrictions**
+
+Patients can explicitly extend access beyond a doctor's default specialty.
+
+A patient may grant a specific doctor access to another specialty by creating a category-specific permission.
+
+Access grants can also restrict which dossier sections are available:
+
+- `ANALYSIS`
+- `PRESCRIPTION`
+- `DIAGNOSIS`
+
+The `scope` field determines which sections are accessible. An empty scope array defaults to all sections.
+
+Permissions can additionally include an optional `expiresAt` timestamp. Once the expiration date is reached, the grant transitions to `EXPIRED`.
+
+Together, these layers provide more granular control over who can access medical information and which parts of a dossier they can see.
+
+### 4. Proactive Medical Record Sharing
+
+Access does not always have to begin with a doctor's request.
+
+Patients can search for doctors using their email addresses and directly establish access permissions.
+
+During this process, patients can configure:
+
+- The permitted medical specialty.
+- Accessible dossier sections.
+- The duration of the permission.
+
+This creates a sharing workflow similar to document-sharing systems, while retaining medical-specific authorization rules.
+
+### 5. Emergency Access — Break-Glass Protocol
+
+Normal access permissions are designed to protect patient information, but emergency situations may require a different approach.
+
+The platform implements a break-glass mechanism that allows doctors to obtain temporary access to a patient's dossier without waiting for the normal approval workflow.
+
+This operation requires a written justification.
+
+However, bypassing the normal approval process does not mean bypassing accountability.
+
+Every emergency access operation triggers two important actions:
+
+1. A real-time `BREAK_GLASS_ACCESS` notification is sent to the patient.
+2. An immutable entry is created in the `BreakGlassLog` table.
+
+These events are available to platform administrators for auditing and review.
+
+The mechanism introduces an emergency exception while maintaining visibility over sensitive access operations.
+
+### 6. Laboratory Results & Automated Triage
+
+Laboratory uploads are not treated as passive file attachments.
+
+Each submitted analysis receives a priority classification:
+
+- `ROUTINE`
+- `URGENT`
+- `CRITICAL`
+
+Unreviewed results are delivered to the inbox of authorized doctors and organized according to their severity.
+
+To reduce the possibility of important results remaining unnoticed, the backend includes an automated safety-net job.
+
+**Background Monitoring**
+
+The safety-net process runs every 15 minutes using `node-cron`.
+
+During each execution, it identifies analyses that remain unreviewed beyond their configured notification thresholds.
+
+The notification rules are:
+
+| Priority | Initial Alert | Subsequent Alerts |
+|---|---|---|
+| CRITICAL | After 15 minutes | Every 6 hours |
+| ROUTINE | After configured delay (12 hours by default) | Every 24 hours |
+
+Routine notifications also respect the doctor's configured quiet hours.
+
+The system uses SMS and WebSocket notifications to reach authorized doctors.
+
+Each alert includes a magic link that allows the doctor to open the associated report directly without going through the standard login flow.
+
+Every notification dispatch is recorded in the `AuditLog`, including the Textbee SMS message ID.
+
+### 7. Audit Logging & Accountability
+
+Sensitive operations throughout the platform generate audit entries.
+
+The `AuditLog` records information about the acting user, their role, and a human-readable description of the performed action.
+
+Examples include:
+
+- Doctors accessing authorized patient dossiers.
+- Patients viewing their medical records.
+- Patients approving or denying access requests.
+- Patients creating direct access grants.
+- Laboratories uploading medical analyses.
+- Administrators suspending or reactivating accounts.
+- Administrators verifying professional registrations.
+
+Administrators can search and filter these events through the administrative interface.
+
+Emergency access events are also tracked separately through `BreakGlassLog`.
+
+This provides a way to inspect how sensitive operations are performed across the platform.
+
+### 8. Interface & Theme System
+
+The frontend includes a global light and dark theme system accessible through a floating toggle.
+
+Theme preferences are stored in `localStorage` and synchronized across pages through a custom `themechange` event.
+
+The visual configuration includes:
+
+**Dark Theme**
+- Black page backgrounds (`#000000`).
+- Charcoal navigation and header surfaces (`#0a0a0c`).
+- Zinc-800 borders.
+
+**Light Theme**
+- Cool slate backgrounds (`#f1f5f9`).
+- White navigation and panel surfaces (`#ffffff`).
+- Slate-300 borders (`#cbd5e1`).
+
+Authentication pages retain a fixed dark clinical background, including the animated EKG cardiac monitor.
+
+---
+
+## Project Structure
+
+The repository separates backend functionality from the Next.js frontend.
+
+```text
 medical-platform/
 ├── prisma/
-│   ├── migrations/             # SQL migration files generated by Prisma
-│   └── schema.prisma           # Prisma database schema definition
+│   ├── migrations/
+│   └── schema.prisma
 ├── src/
 │   ├── config/
-│   │   └── db.js               # Prisma client initialization
-│   ├── controllers/            # Request handlers for API business logic
+│   │   └── db.js
+│   ├── controllers/
 │   │   ├── admin.controller.js
 │   │   ├── api.controller.js
 │   │   ├── appointment.controller.js
@@ -116,191 +303,288 @@ medical-platform/
 │   │   ├── staff_schedule.controller.js
 │   │   └── user.controller.js
 │   ├── jobs/
-│   │   ├── safetyNet.js        # 15-min cron: SMS alerts for unreviewed lab results
-│   │   └── escalation.js       # Re-export alias for safetyNet job
+│   │   ├── safetyNet.js
+│   │   └── escalation.js
 │   ├── middlewares/
-│   │   └── auth.js             # Express & Socket.io authentication guards
-│   ├── routes/                 # Express Router endpoint mappings
+│   │   └── auth.js
+│   ├── routes/
 │   ├── utils/
-│   │   ├── access.js           # Specialty permissions & grant matching logic
-│   │   ├── notify.js           # Real-time and database notification handler
-│   │   └── upload.js           # Multer file upload setup for lab results
-│   ├── index.js                # App entrypoint, Express app & Socket.IO server
-│   └── generated/              # Auto-generated Prisma client build target
-├── uploads/                    # Local storage directory for analysis files and PDFs
-├── run-safety-net.mjs          # Demo helper: trigger safety net evaluation immediately
-├── reset-safety-net.mjs        # Demo helper: backdate analyses to bypass 15-min gate
-├── package.json                # Backend dependency and script manager
-├── prisma.config.js            # Prisma configuration overrides
-├── .env                        # Local environment credentials (git-ignored)
-└── medical-platform-frontend/  # Next.js App Router Frontend
-    ├── public/                 # Static assets
+│   │   ├── access.js
+│   │   ├── notify.js
+│   │   └── upload.js
+│   ├── index.js
+│   └── generated/
+├── uploads/
+├── run-safety-net.mjs
+├── reset-safety-net.mjs
+├── package.json
+├── prisma.config.js
+├── .env
+└── medical-platform-frontend/
+    ├── public/
     └── src/
-        ├── app/                # App Router pages and layouts
-        │   ├── (auth)/         # Login / registration routing groups
-        │   │   ├── login/      # Login page with animated EKG cardiac monitor
-        │   │   └── register/   # Register page with animated EKG cardiac monitor
-        │   ├── (dashboard)/    # Layouts & pages for Patient/Doctor/Lab/Admin panels
-        │   │   ├── patient/    # Patient workspace, dossier, access, and notifications
-        │   │   ├── doctor/     # Doctor dashboard, inbox, and patients list
-        │   │   ├── lab/        # Lab upload dashboard
-        │   │   └── admin/      # Admin overview, users, verifications, audit log
-        │   ├── globals.css     # Global theme overrides & sidebar hover system
-        │   ├── layout.js       # Root layout with floating light/dark theme toggle
-        │   └── page.jsx        # Landing page with auth-role redirects
+        ├── app/
+        │   ├── (auth)/
+        │   │   ├── login/
+        │   │   └── register/
+        │   ├── (dashboard)/
+        │   │   ├── patient/
+        │   │   ├── doctor/
+        │   │   ├── lab/
+        │   │   └── admin/
+        │   ├── globals.css
+        │   ├── layout.js
+        │   └── page.jsx
         ├── lib/
-        │   ├── api.js          # Centralized Axios setup
-        │   └── socket.js       # Socket.IO connection client
+        │   ├── api.js
+        │   └── socket.js
         └── store/
-            └── auth.js         # Zustand global authentication state store
+            └── auth.js
 ```
 
 ---
 
-## 💾 Database Schema (Prisma)
+## Database Design
 
-The application uses the following main tables defined in [`prisma/schema.prisma`](file:///c:/Users/ilyas/Documents/medical-platform/prisma/schema.prisma):
-*   **`User`**: Handles authentication. Links to profile tables based on `Role` (`PATIENT`, `DOCTOR`, `LAB`, `ADMIN`).
-*   **`Patient`**: Custom patient attributes, pointing to their single `MedicalRecord` (Dossier).
-*   **`Doctor`**: Stores license number, specialty (e.g. `CARDIOLOGY`), verification state, and access relationships.
-*   **`Lab`**: Lab organization details and verification state.
-*   **`MedicalRecord`**: Container model joining diagnoses, prescriptions, analyses, and access grants.
-*   **`AccessGrant`**: Track access requests and proactive permissions. Includes columns for `category` (Specialty restriction), `scope` (array of `Section` parts), and `expiresAt` (expiry datetime).
-*   **`Analysis`**: Laboratory test uploads. Tracks priority, category, file attachments, and review states.
-*   **`Prescription`** & **`Diagnosis`**: Detailed health entries logged by doctors on dossiers.
-*   **`Notification`**: Standard user-targeted messages.
-*   **`AuditLog`**: Full immutable audit trail recording actions by all user roles. Searchable and filterable in the Admin UI.
-*   **`BreakGlassLog`**: Emergency access logger recording doctor name, reason, dossier accessed, and timestamps.
+The database is managed through Prisma and PostgreSQL.
 
----
+The main models represent the platform's users, medical information, permissions, and operational events.
 
-## 🚀 Local Development Setup
+| Model | Responsibility |
+|---|---|
+| `User` | Authentication and role-based identity management. |
+| `Patient` | Patient-specific information and relationship with a medical record. |
+| `Doctor` | Professional information, specialty, verification status, and access relationships. |
+| `Lab` | Laboratory organization information and verification status. |
+| `MedicalRecord` | Central container for diagnoses, prescriptions, analyses, and access grants. |
+| `AccessGrant` | Access requests and permissions, including specialty, scope, and expiration. |
+| `Analysis` | Laboratory reports, attachments, priority, specialty, and review status. |
+| `Prescription` | Medication prescriptions associated with patient records. |
+| `Diagnosis` | Medical diagnoses recorded by doctors. |
+| `Notification` | User-targeted platform notifications. |
+| `AuditLog` | Audit trail for actions performed across the platform. |
+| `BreakGlassLog` | Records of emergency access operations, including justification and timestamps. |
 
-Follow these steps to run both the backend and frontend locally.
-
-### 📋 Prerequisites
-*   [Node.js](https://nodejs.org/) (v18 or higher recommended)
-*   [PostgreSQL](https://www.postgresql.org/) database server running locally or hosted
+The complete schema is defined in [`prisma/schema.prisma`](prisma/schema.prisma).
 
 ---
 
-### Step 1: Configure Environment Variables
-Create a file named `.env` in the root backend directory:
+## Real-Time Communication
+
+Socket.IO is used to deliver notifications without requiring users to refresh their dashboards.
+
+A socket connection is established after authentication. Each connected user joins a room identified by their unique `userId`.
+
+This allows the backend to target notifications to the appropriate user.
+
+The main socket events include:
+
+| Event | Description |
+|---|---|
+| `notification` | General notifications, including access requests, laboratory uploads, and verification updates. |
+| `safety_net_alert` | Alerts sent to doctors when laboratory results remain unreviewed beyond their notification thresholds. |
+| `BREAK_GLASS_ACCESS` | Emergency access notification delivered to the affected patient. |
+
+The `safety_net_alert` payload includes the analysis ID, patient name, analysis type, priority, and magic link.
+
+---
+
+## REST API Reference
+
+Authenticated endpoints require the following HTTP header:
+
+```http
+Authorization: Bearer <your_jwt_token>
+```
+
+### Authentication — `/auth`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/auth/register` | Register a new account. Patients and administrators receive immediate activation; doctors and laboratories enter pending verification. |
+| POST | `/auth/login` | Authenticate an existing user. |
+
+### Patient & Doctor Dossiers — `/dossier`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/dossier/me` | Retrieve the patient's own dossier, including analyses, prescriptions, and access grants. |
+| GET | `/dossier/access/pending` | Retrieve incoming doctor access requests. |
+| PUT | `/dossier/access/:id/respond` | Approve or deny an access request, with scope and duration configuration. |
+| PUT | `/dossier/access/:id/revoke` | Revoke an active access grant. |
+| POST | `/dossier/access/grant` | Directly grant access to a doctor using their email address. |
+| GET | `/dossier/download/pdf` | Generate and download a PDF version of the patient's dossier. |
+| GET | `/dossier/my-patients` | Retrieve patient records authorized for the doctor. |
+| GET | `/dossier/by-email/:email` | Retrieve an authorized patient's dossier with specialty-based filtering. |
+| POST | `/dossier/access/request` | Submit a patient access request. |
+| POST | `/dossier/prescription/:patientEmail` | Add a prescription to a patient's dossier, subject to specialty validation. |
+| POST | `/dossier/diagnosis/:patientEmail` | Add a diagnosis to a patient's dossier, subject to specialty validation. |
+| POST | `/dossier/break-glass/:patientEmail` | Initiate emergency access and generate the corresponding notification and audit entry. |
+| GET | `/dossier/:patientId` | Retrieve patient details when access is approved. |
+
+### Laboratory Management — `/lab`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/lab/upload` | Upload a laboratory analysis using multipart form data. Requires a verified laboratory account. |
+| GET | `/lab/uploads` | Retrieve analyses uploaded by the authenticated laboratory. |
+| GET | `/lab/mine` | Retrieve analyses associated with the authenticated patient. |
+| GET | `/lab/:patientId` | Retrieve analyses belonging to a patient under the doctor's supervision. |
+
+### Doctor Inbox — `/doctor`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/doctor/inbox` | Retrieve unreviewed analyses for authorized patients, ordered by priority. |
+| GET | `/doctor/inbox/count` | Retrieve the number of unreviewed analyses. |
+| PUT | `/doctor/inbox/:id/review` | Mark an analysis as reviewed. |
+
+### Administration — `/admin`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/admin/stats` | Retrieve platform statistics. |
+| GET | `/admin/users` | Retrieve users with pagination and role filters. |
+| GET | `/admin/users/:id` | Retrieve detailed user information. |
+| PUT | `/admin/users/:id/toggle` | Suspend or reactivate a user account. |
+| GET | `/admin/verifications` | Retrieve pending doctor and laboratory verification requests. |
+| PUT | `/admin/verifications/:id` | Approve or reject a professional registration. |
+| GET | `/admin/audit-logs` | Retrieve filterable administrative and system audit logs. |
+| GET | `/admin/access-grants` | Retrieve dossier access permissions. |
+| GET | `/admin/break-glass-logs` | Retrieve emergency access records. |
+
+The audit log endpoint supports role and search filters:
+
+```http
+GET /admin/audit-logs?role=DOCTOR
+GET /admin/audit-logs?search=access
+```
+
+### Notifications — `/notifications`
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/notifications` | Retrieve user notifications. |
+| GET | `/notifications/unread` | Retrieve the unread notification count. |
+| PUT | `/notifications/read-all` | Mark all notifications as read. |
+| PUT | `/notifications/:id/read` | Mark a specific notification as read. |
+
+---
+
+## Local Development Setup
+
+The following instructions describe how to run the backend and frontend locally.
+
+### Prerequisites
+
+Make sure the following are installed:
+
+- [Node.js](https://nodejs.org/) (v18 or higher recommended).
+- [PostgreSQL](https://www.postgresql.org/) database server.
+
+### 1. Environment Configuration
+
+Create a `.env` file in the backend root directory.
 
 ```env
 # Server Configuration
 PORT=5000
 NODE_ENV=development
 
-# Database Connection (replace with your PostgreSQL credentials)
+# Database Connection
 DATABASE_URL="postgresql://postgres:password@localhost:5432/medical_platform_db"
 
-# JWT Config
+# JWT Configuration
 JWT_SECRET=your_super_secret_key_change_this
 JWT_EXPIRES_IN=7d
 ```
 
----
+Replace the database credentials and JWT secret with your local configuration.
 
-### Step 2: Database Initialization (Backend)
-1.  Install backend dependencies:
-    ```bash
-    npm install
-    ```
-2.  Generate the Prisma client code and apply migrations to initialize your database:
-    ```bash
-    npx prisma migrate dev --name init
-    ```
-3.  *(Optional)* If you need to browse your database visually, start Prisma Studio:
-    ```bash
-    npx prisma studio
-    ```
+### 2. Backend Installation & Database Initialization
 
----
+Install the backend dependencies:
 
-### Step 3: Run the Backend Server
-Start the backend Express server with nodemon auto-restart:
+```bash
+npm install
+```
+
+Generate the Prisma client and initialize the database through migrations:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+To inspect the database visually, you can optionally launch Prisma Studio:
+
+```bash
+npx prisma studio
+```
+
+### 3. Start the Backend
+
+Run the Express development server:
+
 ```bash
 npm run dev
 ```
-The backend server will launch on [http://localhost:5000](http://localhost:5000).
+
+The backend will be available at:
+
+`http://localhost:5000`
+
+### 4. Frontend Installation & Startup
+
+Navigate to the frontend directory:
+
+```bash
+cd medical-platform-frontend
+```
+
+Install the frontend dependencies:
+
+```bash
+npm install
+```
+
+Start the Next.js development server:
+
+```bash
+npm run dev
+```
+
+The frontend will be available at:
+
+`http://localhost:3000`
 
 ---
 
-### Step 4: Run the Next.js Frontend
-1.  Navigate into the frontend directory:
-    ```bash
-    cd medical-platform-frontend
-    ```
-2.  Install frontend dependencies:
-    ```bash
-    npm install
-    ```
-3.  Start the Next.js dev server:
-    ```bash
-    npm run dev
-    ```
-The frontend application will launch on [http://localhost:3000](http://localhost:3000).
+## Development Notes
+
+The project includes two additional scripts for working with the automated laboratory notification system:
+
+| Script | Purpose |
+|---|---|
+| `run-safety-net.mjs` | Trigger the safety-net evaluation immediately for testing. |
+| `reset-safety-net.mjs` | Backdate analysis records to bypass the normal 15-minute threshold during testing. |
+
+These scripts are useful when testing notification and escalation behavior without waiting for the scheduled background job.
 
 ---
 
-## ⚡ Real-Time Socket Events Reference
+## Project Scope
 
-The Socket.IO connection is initialized upon user login. Standard events include:
-*   `notification`: Fired for all system notifications (new access requests, lab result uploads, admin verification updates).
-*   `safety_net_alert`: Sent to doctors by the 15-min cron job when a lab result is unreviewed past the threshold. Payload includes `analysisId`, `patientName`, `analysisType`, `priority`, and a one-click `magicLink`.
-*   `BREAK_GLASS_ACCESS`: Sent to a patient when a doctor performs an emergency break-glass override on their dossier.
-*   *Rooms:* Every connected socket automatically joins a room named after their unique `userId` (`socket.join(userId)`), ensuring target notifications are delivered securely.
+The platform brings together several interconnected areas of application development:
 
----
+- Multi-role authentication and authorization.
+- Specialty-based access control.
+- Granular and time-limited permissions.
+- Medical record management.
+- Emergency access workflows.
+- File uploads and PDF generation.
+- Scheduled background processing.
+- Real-time notifications.
+- Audit logging and administrative monitoring.
 
-## 📝 REST API Endpoints Reference
+Each component contributes to a larger workflow in which medical information is not only stored, but also shared, accessed, reviewed, and monitored through defined application rules.
 
-All requests must supply the HTTP Header `Authorization: Bearer <your_jwt_token>` for authenticated endpoints.
-
-### Authentication (`/auth`)
-*   `POST /auth/register`: Create user account. Returns token (if Patient/Admin) or pending message (if Doctor/Lab).
-*   `POST /auth/login`: Authenticate existing user credentials.
-
-### Patient & Doctor Dossiers (`/dossier`)
-*   `GET /dossier/me`: *(Patient)* Fetch own dossier with full analyses, prescriptions, and active access grants. Logs a `PATIENT` audit entry.
-*   `GET /dossier/access/pending`: *(Patient)* View incoming access requests from doctors.
-*   `PUT /dossier/access/:id/respond`: *(Patient)* Approve (`APPROVED`) or Deny (`DENIED`) an access request. Scopes and durations are supported. Logs a `PATIENT` audit entry.
-*   `PUT /dossier/access/:id/revoke`: *(Patient)* Revoke a doctor's active access grant.
-*   `POST /dossier/access/grant`: *(Patient)* Proactively grant direct access to a doctor by email with specialty categories, expiration date, and section scopes.
-*   `GET /dossier/download/pdf`: *(Patient)* Generate and download the patient record as a formatted PDF.
-*   `GET /dossier/my-patients`: *(Doctor)* List all patient records authorized for review.
-*   `GET /dossier/by-email/:email`: *(Doctor)* Fetch patient dossier by email (if access is approved). Specialty isolation filters out unauthorized records. Logs a `DOCTOR` audit entry.
-*   `POST /dossier/access/request`: *(Doctor)* Submit access request for a patient by email.
-*   `POST /dossier/prescription/:patientEmail`: *(Doctor)* Append a new medication prescription to a patient's dossier. Requires specialty validation.
-*   `POST /dossier/diagnosis/:patientEmail`: *(Doctor)* Append a new diagnosis to a patient's dossier. Requires specialty validation.
-*   `POST /dossier/break-glass/:patientEmail`: *(Doctor)* Bypasses permissions to gain temporary emergency access. Generates a patient notification and a break glass audit log.
-*   `GET /dossier/:patientId`: *(Doctor)* Retrieve patient details (if access is approved).
-
-### Labs (`/lab`)
-*   `POST /lab/upload`: *(Lab)* Upload analysis file (`multer` multipart upload) for a patient. Must be verified. Logs a `LAB` audit entry.
-*   `GET /lab/uploads`: *(Lab)* Fetch all analysis files uploaded by this lab.
-*   `GET /lab/mine`: *(Patient)* View all analyses uploaded for the logged-in patient.
-*   `GET /lab/:patientId`: *(Doctor)* Retrieve analyses of a patient under the doctor's supervision.
-
-### Doctor Inbox (`/doctor`)
-*   `GET /doctor/inbox`: *(Doctor)* Fetch all unreviewed analyses for authorized patients, prioritized (Critical first).
-*   `GET /doctor/inbox/count`: *(Doctor)* Return count of unreviewed analyses (for UI badges).
-*   `PUT /doctor/inbox/:id/review`: *(Doctor)* Mark a specific analysis as reviewed.
-
-### Admin Management (`/admin`)
-*   `GET /admin/stats`: Fetch overall metrics (user counts, analysis totals, pending access grants count).
-*   `GET /admin/users`: List all platform users with pagination and role filters.
-*   `GET /admin/users/:id`: View detailed user profiles, including records or professional settings.
-*   `PUT /admin/users/:id/toggle`: Suspend or reactivate a user account. Logs an `ADMIN` audit entry.
-*   `GET /admin/verifications`: Get a list of pending doctor and lab verification requests.
-*   `PUT /admin/verifications/:id`: Verify (`APPROVED` or `REJECTED`) a doctor's or lab's registration status. Logs an `ADMIN` audit entry.
-*   `GET /admin/audit-logs`: View search-filterable system logs of administrative actions. Supports `?role=PATIENT|DOCTOR|LAB|ADMIN` and `?search=` query params.
-*   `GET /admin/access-grants`: Retrieve all dossier access permissions granted.
-*   `GET /admin/break-glass-logs`: Retrieve logs of all emergency doctor overrides.
-
-### Notifications (`/notifications`)
-*   `GET /notifications`: Get all user notifications.
-*   `GET /notifications/unread`: Count of unread user notifications.
-*   `PUT /notifications/read-all`: Mark all notifications as read.
-*   `PUT /notifications/:id/read`: Mark a single notification as read.
